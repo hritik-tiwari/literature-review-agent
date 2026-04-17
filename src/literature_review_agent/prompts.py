@@ -13,7 +13,7 @@ You are an evidence extraction agent.
 
 You will receive:
 - a research question
-- one paper text
+- one paper record from Semantic Scholar, including title, abstract, year, venue, and citation information
 
 Extract the following in JSON:
 - title
@@ -23,7 +23,7 @@ Extract the following in JSON:
 - limitations: array
 - relevance_score: integer from 1 to 10
 
-Be concise and faithful to the paper text.
+Be concise and faithful to the paper metadata and abstract. Do not invent claims that are not supported by the abstract.
 """
 
 
@@ -56,4 +56,3 @@ Write a structured review with these sections:
 
 Be analytical, concise, and grounded in the extracted evidence.
 """
-

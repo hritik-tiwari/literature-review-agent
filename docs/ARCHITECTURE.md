@@ -2,11 +2,11 @@
 
 ## Goal
 
-The Literature Review Agent is designed as a staged LLM workflow for turning a research question and a small set of paper abstracts into a structured literature review.
+The Literature Review Agent is designed as a staged workflow for turning a research question into a structured literature review using deterministic retrieval in Python and reasoning-heavy synthesis in Gemini.
 
 The emphasis is on separation of concerns:
 
-- Python handles application flow and state
+- Python handles retrieval, ranking, application flow, and state
 - Gemini handles the reasoning-heavy steps
 - each stage produces an inspectable artifact
 
@@ -22,11 +22,27 @@ Output:
 
 - `sub_questions`
 
-### 2. Paper Extraction
+### 2. Retrieval and Ranking
+
+File: [src/literature_review_agent/retriever.py](../src/literature_review_agent/retriever.py)
+
+The app queries Semantic Scholar for the user question, retrieves a configurable number of candidate papers, and ranks them with deterministic heuristics.
+
+Current ranking signals:
+
+- title and abstract overlap with important question terms
+- citation count
+- publication recency
+- abstract availability
+- venue availability
+
+Each selected paper includes a human-readable ranking reason so the UI can explain why it was kept.
+
+### 3. Paper Extraction
 
 File: [src/literature_review_agent/agent.py](../src/literature_review_agent/agent.py)
 
-Each paper is processed independently into a structured record.
+Each selected paper is processed independently into a structured record.
 
 Output fields:
 
@@ -39,7 +55,7 @@ Output fields:
 
 This stage converts unstructured text into comparable evidence objects.
 
-### 3. Comparison
+### 4. Comparison
 
 The extracted records are passed into a comparison step that surfaces common methods, common findings, differences, conflicts, and research gaps.
 
@@ -51,7 +67,7 @@ Output:
 - `conflicts`
 - `gaps`
 
-### 4. Final Synthesis
+### 5. Final Synthesis
 
 The final stage uses the question, plan, extracted records, and comparison output to write a review with consistent sections.
 
@@ -80,13 +96,17 @@ Coordinates the multi-stage workflow and assembles the final `ReviewResult`.
 
 Wraps Gemini requests for both JSON and text generation. It also normalizes fenced JSON responses before parsing.
 
+### [src/literature_review_agent/retriever.py](../src/literature_review_agent/retriever.py)
+
+Handles Semantic Scholar search plus deterministic scoring and ranking.
+
 ### [src/literature_review_agent/schemas.py](../src/literature_review_agent/schemas.py)
 
 Defines lightweight result models used by the UI and orchestration layer.
 
 ### [src/literature_review_agent/utils.py](../src/literature_review_agent/utils.py)
 
-Contains helper utilities such as splitting multiple papers from a shared input block.
+Contains helper utilities used by the pipeline.
 
 ## Why The Intermediate Trace Matters
 
@@ -101,10 +121,10 @@ This makes debugging easier and keeps the workflow more transparent.
 
 ## Current Scope
 
-This repository currently focuses on the review pipeline itself, not on automated paper retrieval. That is intentional for the MVP:
+This repository currently uses automated retrieval plus abstract-level evidence extraction:
 
-- it keeps API usage smaller
-- it isolates the reasoning workflow
-- it makes it easier to validate each stage independently
+- retrieval and ranking are kept outside the LLM for lower token usage
+- the Gemini stages focus on extraction, comparison, and synthesis
+- the app remains lightweight and inspectable
 
-The next major iteration is to add deterministic retrieval and ranking in Python before the LLM steps.
+The next major iteration is to add caching, citation-aware enrichment, and full-paper ingestion.

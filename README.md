@@ -1,22 +1,25 @@
 # Literature Review Agent
 
-A Gemini-powered research workflow that transforms a research question plus a set of paper abstracts into a structured literature review with intermediate evidence, comparison results, and review trace.
+A Gemini-powered research workflow that retrieves papers from Semantic Scholar, ranks them in Python, and synthesizes a structured literature review from the top results.
 
 ## Overview
 
 This project focuses on the part of literature review work that benefits from staged reasoning rather than one-shot text generation. Instead of asking a model for a single summary, the agent:
 
 1. decomposes a research question into sub-questions
-2. extracts structured evidence from each paper
-3. compares patterns across papers
-4. identifies conflicts and research gaps
-5. synthesizes a final review
+2. retrieves up to 20 candidate papers from Semantic Scholar
+3. ranks those candidates deterministically in Python and keeps the top 8
+4. extracts structured evidence from the selected papers
+5. compares patterns across papers
+6. identifies conflicts and research gaps
+7. synthesizes a final review
 
 The result is a more inspectable workflow with explicit intermediate state.
 
 ## Features
 
 - Multi-step agent pipeline for literature review synthesis
+- Semantic Scholar retrieval with deterministic ranking reasons
 - Structured JSON outputs for planning, extraction, and comparison stages
 - Streamlit interface for interactive runs
 - Review trace for debugging and auditability
@@ -27,11 +30,13 @@ The result is a more inspectable workflow with explicit intermediate state.
 ```mermaid
 flowchart LR
     A["Research question"] --> B["Plan sub-questions"]
-    C["Paper abstracts or notes"] --> D["Extract evidence per paper"]
-    B --> D
-    D --> E["Compare findings and methods"]
-    E --> F["Detect conflicts and gaps"]
-    F --> G["Synthesize final literature review"]
+    A --> C["Retrieve 20 papers from Semantic Scholar"]
+    C --> D["Rank in Python and keep top 8"]
+    B --> E["Extract evidence per paper"]
+    D --> E
+    E --> F["Compare findings and methods"]
+    F --> G["Detect conflicts and gaps"]
+    G --> H["Synthesize final literature review"]
 ```
 
 ## Repository Structure
@@ -42,6 +47,7 @@ literature_review_agent/
 |-- pyproject.toml
 |-- requirements.txt
 |-- README.md
+|-- LICENSE
 |-- docs/
 |   `-- ARCHITECTURE.md
 |-- examples/
@@ -52,6 +58,7 @@ literature_review_agent/
         |-- agent.py
         |-- gemini_client.py
         |-- prompts.py
+        |-- retriever.py
         |-- schemas.py
         `-- utils.py
 ```
@@ -70,13 +77,17 @@ PowerShell:
 
 ```powershell
 $env:GEMINI_API_KEY="your_key_here"
+$env:SEMANTIC_SCHOLAR_API_KEY="your_optional_key_here"
 ```
 
 Git Bash:
 
 ```bash
 export GEMINI_API_KEY="your_key_here"
+export SEMANTIC_SCHOLAR_API_KEY="your_optional_key_here"
 ```
+
+`SEMANTIC_SCHOLAR_API_KEY` is optional, but recommended if you want more reliable retrieval at higher request volumes.
 
 ### 3. Run the app
 
@@ -86,7 +97,7 @@ streamlit run app.py
 
 ## Example Input
 
-Use a focused research question and paste multiple paper abstracts separated by a line containing only `---`.
+Use a focused research question. The app handles paper discovery automatically.
 
 Example question:
 
@@ -94,12 +105,20 @@ Example question:
 How are transformers being used for time-series forecasting, and what limitations appear most often across recent papers?
 ```
 
-Example paper input is available in [examples/sample_papers.txt](examples/sample_papers.txt).
+## UI Output
+
+For each run, the app shows:
+
+- selected papers from Semantic Scholar
+- ranking reasons for why those papers were kept
+- extracted evidence for each selected paper
+- the final literature review, including gaps and conflicts
 
 ## Core Components
 
 - [app.py](app.py): Streamlit interface and run orchestration
 - [src/literature_review_agent/agent.py](src/literature_review_agent/agent.py): multi-stage pipeline controller
+- [src/literature_review_agent/retriever.py](src/literature_review_agent/retriever.py): Semantic Scholar search and deterministic ranking
 - [src/literature_review_agent/gemini_client.py](src/literature_review_agent/gemini_client.py): Gemini wrapper for text and JSON generation
 - [src/literature_review_agent/prompts.py](src/literature_review_agent/prompts.py): task-specific prompts for each stage
 - [src/literature_review_agent/schemas.py](src/literature_review_agent/schemas.py): result models
@@ -109,19 +128,19 @@ Example paper input is available in [examples/sample_papers.txt](examples/sample
 
 - The agent keeps intermediate state in memory for the duration of a run.
 - JSON cleaning is handled defensively because model responses can be wrapped in markdown fences.
-- The current version expects user-provided paper text rather than performing external retrieval.
+- Paper retrieval and ranking happen in Python before Gemini is called.
+- This keeps LLM usage focused on extraction, comparison, and synthesis.
 
 More detail is available in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Limitations
 
-- Retrieval is manual in the current version; papers are not fetched automatically.
-- The pipeline relies on abstracts or excerpts rather than full-paper parsing.
+- The current version relies on paper metadata and abstracts rather than full-paper parsing.
 - Output quality depends on the quality and coverage of the supplied paper text.
+- Semantic Scholar API availability and rate limits affect retrieval quality.
 
 ## Roadmap
 
-- Add automated paper retrieval from reputable academic APIs
 - Add PDF ingestion and citation-aware output
 - Cache intermediate artifacts to reduce repeated token usage
 - Add evaluation checks for unsupported claims or weak evidence
