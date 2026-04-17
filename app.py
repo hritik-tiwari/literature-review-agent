@@ -12,7 +12,7 @@ st.set_page_config(page_title="Literature Review Agent", page_icon="📚", layou
 
 def main() -> None:
     st.title("Literature Review Agent")
-    st.caption("A multi-step research agent built with Gemini function-style orchestration.")
+    st.caption("A multi-stage research agent that plans queries, retrieves papers, and synthesizes a structured review.")
 
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not api_key:
@@ -22,9 +22,9 @@ def main() -> None:
     with st.sidebar:
         st.header("How to use")
         st.write("1. Enter a research question.")
-        st.write("2. The app retrieves papers from Semantic Scholar.")
-        st.write("3. Python ranks candidates before Gemini analyzes them.")
-        st.write("4. Review selected papers, evidence, and the final synthesis.")
+        st.write("2. The app plans source-specific search queries automatically.")
+        st.write("3. It retrieves from Semantic Scholar, arXiv, and Crossref.")
+        st.write("4. Python deduplicates and ranks candidates before Gemini analyzes them.")
         candidate_limit = st.slider("Candidate papers to retrieve", min_value=10, max_value=30, value=20, step=5)
         keep_top_n = st.slider("Top papers to keep", min_value=5, max_value=10, value=8, step=1)
 
@@ -45,7 +45,7 @@ def main() -> None:
     agent = LiteratureReviewAgent(api_key=api_key)
 
     try:
-        with st.spinner("Retrieving papers and running the literature review agent..."):
+        with st.spinner("Planning queries, retrieving papers, and running the literature review agent..."):
             result = agent.run(question=question, candidate_limit=candidate_limit, keep_top_n=keep_top_n)
     except Exception as exc:
         st.error(f"Run failed: {exc}")
@@ -65,8 +65,10 @@ def main() -> None:
                     f"{paper.source} | {authors} | {paper.venue or 'Unknown venue'} | "
                     f"{paper.year or 'Year unavailable'} | {paper.citation_count} citations"
                 )
+                if len(paper.sources_seen) > 1:
+                    st.write(f"Also seen in: {', '.join(paper.sources_seen)}")
                 if paper.url:
-                    st.markdown(f"[Semantic Scholar page]({paper.url})")
+                    st.markdown(f"[Open paper link]({paper.url})")
                 st.write(f"Ranking reason: {paper.ranking_reason}")
                 if paper.abstract:
                     st.write(paper.abstract)

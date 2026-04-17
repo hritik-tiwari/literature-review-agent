@@ -17,6 +17,8 @@ class PaperRecord:
 class RankedPaper:
     paper_id: str
     source: str
+    source_quality: float
+    source_priority: int
     title: str
     abstract: str
     year: int | None
@@ -28,6 +30,8 @@ class RankedPaper:
     rank_score: float
     ranking_reason: str
     matched_terms: list[str]
+    dedup_key: str
+    sources_seen: list[str]
 
 
 @dataclass

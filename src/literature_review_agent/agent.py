@@ -4,10 +4,9 @@ from dataclasses import asdict
 
 from src.literature_review_agent.gemini_client import GeminiJSONClient
 from src.literature_review_agent.prompts import (
+    BATCH_EXTRACTION_PROMPT,
     COMPARISON_PROMPT,
     FINAL_SYNTHESIS_PROMPT,
-    PAPER_EXTRACTION_PROMPT,
-    PLAN_PROMPT,
 )
 from src.literature_review_agent.schemas import ReviewResult
 from src.literature_review_agent.retriever import SemanticScholarRetriever
@@ -25,6 +24,14 @@ class LiteratureReviewAgent:
         keep_top_n: int = 8,
     ) -> ReviewResult:
         trace: list[dict] = []
+        query_plan = self.retriever.query_planner.plan(question)
+        trace.append(
+            {
+                "stage": "plan_retrieval",
+                "title": "Built retrieval query plan",
+                "payload": query_plan,
+            }
+        )
 
         selected_papers = self.retriever.search_and_rank(
             question=question,
@@ -43,37 +50,33 @@ class LiteratureReviewAgent:
             }
         )
 
-        plan = self.client.generate_json(PLAN_PROMPT, {"question": question})
-        trace.append({"stage": "plan", "title": "Generated sub-questions", "payload": plan})
-
-        extracted_papers = []
-        for paper in selected_papers:
-            paper_record = self.client.generate_json(
-                PAPER_EXTRACTION_PROMPT,
+        extraction_payload = {
+            "question": question,
+            "papers": [
                 {
-                    "question": question,
-                    "paper": {
-                        "title": paper.title,
-                        "source": paper.source,
-                        "abstract": paper.abstract,
-                        "year": paper.year,
-                        "citation_count": paper.citation_count,
-                        "venue": paper.venue,
-                        "authors": paper.authors,
-                        "rank_score": paper.rank_score,
-                        "ranking_reason": paper.ranking_reason,
-                    },
-                    "sub_questions": plan.get("sub_questions", []),
-                },
-            )
-            extracted_papers.append(paper_record)
-            trace.append(
-                {
-                    "stage": "extract",
-                    "title": f"Extracted evidence for rank {paper.rank}",
-                    "payload": paper_record,
+                    "title": paper.title,
+                    "source": paper.source,
+                    "sources_seen": paper.sources_seen,
+                    "abstract": paper.abstract,
+                    "year": paper.year,
+                    "citation_count": paper.citation_count,
+                    "venue": paper.venue,
+                    "authors": paper.authors,
+                    "rank_score": paper.rank_score,
+                    "ranking_reason": paper.ranking_reason,
                 }
-            )
+                for paper in selected_papers
+            ],
+        }
+        extraction_result = self.client.generate_json(BATCH_EXTRACTION_PROMPT, extraction_payload)
+        extracted_papers = extraction_result.get("extracted_papers", [])
+        trace.append(
+            {
+                "stage": "extract",
+                "title": "Batch-extracted evidence for selected papers",
+                "payload": extraction_result,
+            }
+        )
 
         comparison = self.client.generate_json(
             COMPARISON_PROMPT,
@@ -85,7 +88,6 @@ class LiteratureReviewAgent:
             FINAL_SYNTHESIS_PROMPT,
             {
                 "question": question,
-                "sub_questions": plan.get("sub_questions", []),
                 "papers": extracted_papers,
                 "comparison": comparison,
             },

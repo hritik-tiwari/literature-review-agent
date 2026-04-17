@@ -1,21 +1,14 @@
-PLAN_PROMPT = """
-You are a research planning agent.
-
-Given a research question, break it into 3 to 5 sub-questions that would help a literature review.
-
-Return JSON with:
-- sub_questions: array of strings
-"""
-
-
-PAPER_EXTRACTION_PROMPT = """
+BATCH_EXTRACTION_PROMPT = """
 You are an evidence extraction agent.
 
 You will receive:
 - a research question
-- one paper record from Semantic Scholar, including title, abstract, year, venue, and citation information
+- multiple paper records with title, source, abstract, year, venue, and citation information
 
-Extract the following in JSON:
+Return JSON with:
+- extracted_papers: array of paper records
+
+Each paper record must contain:
 - title
 - summary
 - methods: array
