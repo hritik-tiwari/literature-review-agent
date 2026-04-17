@@ -1,0 +1,5 @@
+PatchTST introduces a patching strategy for multivariate time-series forecasting and applies a Transformer encoder over patches rather than individual time steps. The approach improves efficiency and achieves strong long-horizon forecasting performance on benchmark datasets. Reported limitations include sensitivity to patch size selection and remaining challenges on highly irregular signals.
+---
+Informer proposes a Transformer-based architecture for long sequence time-series forecasting using ProbSparse self-attention to reduce complexity. The paper reports faster inference and competitive forecasting accuracy relative to prior Transformer variants. Limitations include degradation on some datasets and a dependence on careful hyperparameter tuning.
+---
+Autoformer uses decomposition blocks and an auto-correlation mechanism to model long-term dependencies in time-series forecasting. It demonstrates strong performance on several benchmark datasets and improves interpretability by explicitly modeling trend and seasonal components. Limitations include benchmark-centered evaluation and unclear robustness under substantial distribution shift.
