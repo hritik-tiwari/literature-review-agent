@@ -54,6 +54,7 @@ class LiteratureReviewAgent:
                     "question": question,
                     "paper": {
                         "title": paper.title,
+                        "source": paper.source,
                         "abstract": paper.abstract,
                         "year": paper.year,
                         "citation_count": paper.citation_count,

@@ -16,6 +16,7 @@ class PaperRecord:
 @dataclass
 class RankedPaper:
     paper_id: str
+    source: str
     title: str
     abstract: str
     year: int | None

@@ -62,7 +62,7 @@ def main() -> None:
             with st.container(border=True):
                 st.markdown(f"**#{paper.rank} {paper.title}**")
                 st.caption(
-                    f"{authors} | {paper.venue or 'Unknown venue'} | "
+                    f"{paper.source} | {authors} | {paper.venue or 'Unknown venue'} | "
                     f"{paper.year or 'Year unavailable'} | {paper.citation_count} citations"
                 )
                 if paper.url:

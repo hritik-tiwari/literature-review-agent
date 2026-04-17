@@ -1,13 +1,13 @@
 # Literature Review Agent
 
-A Gemini-powered research workflow that retrieves papers from Semantic Scholar, ranks them in Python, and synthesizes a structured literature review from the top results.
+A Gemini-powered research workflow that retrieves papers from multiple scholarly sources, ranks them in Python, and synthesizes a structured literature review from the top results.
 
 ## Overview
 
 This project focuses on the part of literature review work that benefits from staged reasoning rather than one-shot text generation. Instead of asking a model for a single summary, the agent:
 
 1. decomposes a research question into sub-questions
-2. retrieves up to 20 candidate papers from Semantic Scholar
+2. retrieves up to 20 candidate papers from Semantic Scholar, with fallback to Crossref
 3. ranks those candidates deterministically in Python and keeps the top 8
 4. extracts structured evidence from the selected papers
 5. compares patterns across papers
@@ -19,7 +19,8 @@ The result is a more inspectable workflow with explicit intermediate state.
 ## Features
 
 - Multi-step agent pipeline for literature review synthesis
-- Semantic Scholar retrieval with deterministic ranking reasons
+- Multi-source retrieval with fallback and local caching
+- Deterministic ranking reasons built in Python
 - Structured JSON outputs for planning, extraction, and comparison stages
 - Streamlit interface for interactive runs
 - Review trace for debugging and auditability
@@ -30,7 +31,7 @@ The result is a more inspectable workflow with explicit intermediate state.
 ```mermaid
 flowchart LR
     A["Research question"] --> B["Plan sub-questions"]
-    A --> C["Retrieve 20 papers from Semantic Scholar"]
+    A --> C["Retrieve papers from Semantic Scholar or Crossref"]
     C --> D["Rank in Python and keep top 8"]
     B --> E["Extract evidence per paper"]
     D --> E
@@ -78,6 +79,7 @@ PowerShell:
 ```powershell
 $env:GEMINI_API_KEY="your_key_here"
 $env:SEMANTIC_SCHOLAR_API_KEY="your_optional_key_here"
+$env:CROSSREF_MAILTO="your_email@example.com"
 ```
 
 Git Bash:
@@ -85,9 +87,11 @@ Git Bash:
 ```bash
 export GEMINI_API_KEY="your_key_here"
 export SEMANTIC_SCHOLAR_API_KEY="your_optional_key_here"
+export CROSSREF_MAILTO="your_email@example.com"
 ```
 
 `SEMANTIC_SCHOLAR_API_KEY` is optional, but recommended if you want more reliable retrieval at higher request volumes.
+`CROSSREF_MAILTO` is optional, but recommended because Crossref prefers identified traffic for polite-pool access.
 
 ### 3. Run the app
 
@@ -109,7 +113,7 @@ How are transformers being used for time-series forecasting, and what limitation
 
 For each run, the app shows:
 
-- selected papers from Semantic Scholar
+- selected papers from the active retrieval source
 - ranking reasons for why those papers were kept
 - extracted evidence for each selected paper
 - the final literature review, including gaps and conflicts
@@ -118,7 +122,7 @@ For each run, the app shows:
 
 - [app.py](app.py): Streamlit interface and run orchestration
 - [src/literature_review_agent/agent.py](src/literature_review_agent/agent.py): multi-stage pipeline controller
-- [src/literature_review_agent/retriever.py](src/literature_review_agent/retriever.py): Semantic Scholar search and deterministic ranking
+- [src/literature_review_agent/retriever.py](src/literature_review_agent/retriever.py): multi-source retrieval, caching, and deterministic ranking
 - [src/literature_review_agent/gemini_client.py](src/literature_review_agent/gemini_client.py): Gemini wrapper for text and JSON generation
 - [src/literature_review_agent/prompts.py](src/literature_review_agent/prompts.py): task-specific prompts for each stage
 - [src/literature_review_agent/schemas.py](src/literature_review_agent/schemas.py): result models
@@ -130,6 +134,7 @@ For each run, the app shows:
 - JSON cleaning is handled defensively because model responses can be wrapped in markdown fences.
 - Paper retrieval and ranking happen in Python before Gemini is called.
 - This keeps LLM usage focused on extraction, comparison, and synthesis.
+- Retrieval results are cached locally to reduce repeated API calls and make retries cheaper.
 
 More detail is available in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -137,7 +142,8 @@ More detail is available in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 - The current version relies on paper metadata and abstracts rather than full-paper parsing.
 - Output quality depends on the quality and coverage of the supplied paper text.
-- Semantic Scholar API availability and rate limits affect retrieval quality.
+- Source API availability and rate limits affect retrieval quality.
+- Crossref metadata quality varies by publisher, especially for abstract coverage.
 
 ## Roadmap
 

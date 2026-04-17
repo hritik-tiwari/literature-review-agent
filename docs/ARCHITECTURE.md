@@ -22,11 +22,16 @@ Output:
 
 - `sub_questions`
 
-### 2. Retrieval and Ranking
+### 2. Retrieval, Fallback, and Ranking
 
 File: [src/literature_review_agent/retriever.py](../src/literature_review_agent/retriever.py)
 
-The app queries Semantic Scholar for the user question, retrieves a configurable number of candidate papers, and ranks them with deterministic heuristics.
+The app first tries Semantic Scholar for the user question. If that fails, including on rate limits, it falls back to Crossref. Successful retrievals are cached locally so repeated runs avoid unnecessary API traffic.
+
+Retrieval sources:
+
+- Semantic Scholar
+- Crossref
 
 Current ranking signals:
 
@@ -98,7 +103,7 @@ Wraps Gemini requests for both JSON and text generation. It also normalizes fenc
 
 ### [src/literature_review_agent/retriever.py](../src/literature_review_agent/retriever.py)
 
-Handles Semantic Scholar search plus deterministic scoring and ranking.
+Handles retrieval fallback, local caching, deterministic scoring, and ranking.
 
 ### [src/literature_review_agent/schemas.py](../src/literature_review_agent/schemas.py)
 
